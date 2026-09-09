@@ -1,0 +1,28 @@
+{
+  "title": " Vocabulary",
+  "unit_large": "Unit 8 ",
+  "unit_small": "Part II",
+  "source_label": "vocabulary from unit 8 part II",
+  "vocab_file": "vocab/Vocabulary_Unit_8_updated.docx",
+  "vocab_section": "Test 2 (updated)",
+  "translate": [
+    "Regie führen",
+    "Uraufführung / Erste Aufführung",
+    "Auszeichnung",
+    "Drehbuch",
+    "Publikum",
+    "Fortsetzung",
+    "Untertitel",
+    "unglaublich"
+  ],
+  "gapfill": {
+    "words": [
+      "Filmmusik",
+      "vermeiden",
+      "verfügbar",
+      "veröffentlichen / herausbringen"
+    ],
+    "text": "Last month, a famous studio decided to {{gap:veröffentlichen / herausbringen}} a new fantasy film. Before I went to the cinema, I tried to {{gap:vermeiden}} every spoiler on social media. My favourite part was the {{gap:Filmmusik}}, because it made every scene feel more exciting. The film is now {{gap:verfügbar}} on Netflix, so I can watch it again with my sister."
+  },
+  "output": "exams/Unit_8_Part_II_Niv._A_2.docx"
+}
