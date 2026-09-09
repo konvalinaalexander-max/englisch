@@ -1,0 +1,1043 @@
+<title>Kino-Runner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Outfit:wght@400;500;700;900&display=swap">
+<style>
+  :root{
+    --ink:#0E0A18;
+    --night:#160F28;
+    --surface:#241843;
+    --surface-2:#31215C;
+    --line:#4A3579;
+    --gold:#FFC53D;
+    --gold-deep:#E5A31F;
+    --rose:#FF4D8D;
+    --cyan:#5BE0F0;
+    --mint:#3DDC97;
+    --red:#FF5470;
+    --text:#F7F0FF;
+    --muted:#A390C8;
+    --shadow:0 18px 44px rgba(6,3,16,.6);
+    --ui:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --script:"Courier Prime","Courier New",monospace;
+    --marquee:"Bungee","Outfit",system-ui,sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html{background:#0E0A18}
+  body{
+    min-height:100vh;
+    margin:0;
+    background:
+      radial-gradient(900px 520px at 50% -8%, #3A1D5C 0%, rgba(58,29,92,0) 62%),
+      linear-gradient(180deg,#120C20 0%, #0E0A18 100%);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:var(--ui);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .app{
+    max-width:1020px;
+    margin:0 auto;
+    padding:20px 16px 44px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  /* ---------- marquee header ---------- */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .sign{
+    position:relative;
+    background:linear-gradient(180deg,var(--surface-2),var(--surface));
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 20px 12px;
+    box-shadow:var(--shadow), inset 0 0 34px rgba(255,197,61,.09);
+  }
+  .sign::before{
+    content:"";position:absolute;inset:5px 9px auto 9px;height:7px;
+    background-image:radial-gradient(circle, var(--gold) 0 2.6px, rgba(255,197,61,0) 3px);
+    background-size:15px 7px;
+    opacity:.85;
+    animation:bulbs 2.4s steps(2,end) infinite;
+  }
+  @keyframes bulbs{50%{opacity:.35}}
+  .sign h1{
+    margin:8px 0 2px;
+    font-family:var(--marquee);
+    font-size:clamp(24px,4.6vw,38px);
+    line-height:1;
+    letter-spacing:.5px;
+    color:var(--gold);
+    text-shadow:0 0 16px rgba(255,197,61,.45), 0 3px 0 var(--gold-deep);
+  }
+  .sign p{
+    margin:0;
+    font-size:12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--rose);
+    font-weight:700;
+  }
+
+  .stats{display:flex;gap:8px;flex-wrap:wrap}
+  .stat{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:8px 13px;
+    min-width:84px;
+  }
+  .stat span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .stat b{
+    display:block;
+    font-family:var(--script);
+    font-size:19px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    color:var(--text);
+  }
+  .stat--streak b{color:var(--rose)}
+  .stat--scenes b{color:var(--gold)}
+
+  /* ---------- film strip progress ---------- */
+  .strip{
+    background:var(--ink);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:13px 10px;
+    position:relative;
+  }
+  .strip::before,.strip::after{
+    content:"";position:absolute;left:8px;right:8px;height:6px;
+    background-image:linear-gradient(90deg,var(--surface-2) 0 9px, transparent 9px 100%);
+    background-size:19px 6px;
+    border-radius:2px;
+  }
+  .strip::before{top:4px}
+  .strip::after{bottom:4px}
+  .frames{display:flex;gap:5px}
+  .frame{
+    flex:1 1 0;
+    min-width:0;
+    aspect-ratio:1/.82;
+    border-radius:4px;
+    background:var(--surface);
+    border:1px solid #3B2A66;
+    display:grid;
+    place-items:center;
+    font-family:var(--script);
+    font-size:12px;
+    font-weight:700;
+    color:#6E5C96;
+    transition:transform .25s, background .25s, color .25s;
+  }
+  .frame.done{
+    background:linear-gradient(160deg,var(--gold),var(--gold-deep));
+    border-color:var(--gold);
+    color:#3A2604;
+    box-shadow:0 0 14px rgba(255,197,61,.4);
+  }
+  .frame.pop{transform:scale(1.16) rotate(-3deg)}
+
+  /* ---------- stage ---------- */
+  .stage{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    background:var(--night);
+  }
+  canvas{display:block;width:100%;aspect-ratio:12/5;touch-action:manipulation}
+  .stage.shake{animation:shake .32s}
+  @keyframes shake{
+    0%,100%{transform:translate(0,0)}
+    20%{transform:translate(-7px,3px)}
+    45%{transform:translate(6px,-3px)}
+    70%{transform:translate(-4px,-2px)}
+  }
+
+  .overlay{
+    position:absolute;inset:0;
+    display:grid;place-items:center;
+    padding:16px;
+    background:rgba(12,7,24,.82);
+    backdrop-filter:blur(4px);
+    z-index:5;
+  }
+
+  /* ---------- clapperboard card ---------- */
+  .slate{
+    width:min(540px,100%);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    max-height:100%;
+    overflow-y:auto;
+  }
+  .clap{
+    height:24px;
+    background:repeating-linear-gradient(112deg,#F7F0FF 0 20px,#170F2B 20px 40px);
+  }
+  .slate__body{padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px}
+  .slug{
+    font-family:var(--script);
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    border-bottom:1px dashed #3F2C6B;
+    padding-bottom:9px;
+  }
+  .cue{
+    font-family:var(--marquee);
+    font-size:clamp(20px,3.6vw,27px);
+    color:var(--rose);
+    margin:0;
+    line-height:1.1;
+  }
+  .cue.ok{color:var(--mint)}
+  .prompt-de{
+    font-family:var(--script);
+    font-size:clamp(23px,4.6vw,32px);
+    font-weight:700;
+    color:var(--text);
+    margin:0;
+    line-height:1.2;
+    text-wrap:balance;
+  }
+  .ask{margin:0;font-size:14px;color:var(--muted)}
+  .answer{
+    width:100%;
+    font-family:var(--script);
+    font-size:23px;
+    font-weight:700;
+    color:var(--gold);
+    background:#1B1132;
+    border:1px solid var(--line);
+    border-bottom:2px solid var(--gold);
+    border-radius:8px 8px 0 0;
+    padding:11px 14px;
+    letter-spacing:.5px;
+  }
+  .answer::placeholder{color:#5C4A85;font-weight:400}
+  .answer:focus{outline:none;border-color:var(--cyan);border-bottom-color:var(--cyan)}
+  .answer.wrong{animation:nope .3s}
+  @keyframes nope{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+
+  .feedback{font-size:14px;line-height:1.45;min-height:20px;margin:0;color:var(--muted)}
+  .feedback b{font-family:var(--script);font-size:16px}
+  .feedback.good{color:var(--mint)}
+  .feedback.bad{color:var(--red)}
+  .feedback.hint{color:var(--cyan)}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{
+    font:700 15px var(--ui);
+    background:linear-gradient(180deg,var(--gold),var(--gold-deep));
+    color:#33210A;
+    border:0;
+    border-radius:999px;
+    padding:11px 24px;
+    cursor:pointer;
+    transition:transform .12s, filter .12s;
+  }
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+  .btn:active{transform:translateY(1px)}
+  .btn--ghost{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--line);
+    font-weight:500;
+  }
+  .btn--ghost:hover{background:var(--surface-2)}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+
+  /* ---------- start + win ---------- */
+  .title-xl{
+    font-family:var(--marquee);
+    font-size:clamp(26px,5.4vw,40px);
+    margin:0;
+    color:var(--gold);
+    line-height:1.05;
+    text-shadow:0 0 18px rgba(255,197,61,.4);
+  }
+  .lede{margin:0;font-size:15px;line-height:1.6;color:#D9CDF2;max-width:46ch}
+  .keys{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  kbd{
+    font-family:var(--script);
+    background:#1B1132;
+    border:1px solid var(--line);
+    border-bottom-width:2px;
+    border-radius:5px;
+    padding:2px 7px;
+    color:var(--text);
+    font-size:12px;
+  }
+  .award{
+    font-family:var(--marquee);
+    font-size:clamp(17px,3vw,22px);
+    color:var(--gold);
+    margin:0;
+  }
+  .tally{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:7px;
+    margin:0;
+    padding:0;
+    list-style:none;
+  }
+  .tally li{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    background:#1B1132;
+    border-left:3px solid var(--mint);
+    border-radius:5px;
+    padding:6px 10px;
+    font-family:var(--script);
+    font-size:13px;
+  }
+  .tally li.retry{border-left-color:var(--red)}
+  .tally li i{font-style:normal;color:var(--muted)}
+  .tally li b{color:var(--gold);font-weight:700}
+
+  /* ---------- footer ---------- */
+  .foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .foot code{font-family:var(--script);color:#C7B5E8}
+  .toggle{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:999px;
+    padding:7px 15px;
+    font:500 13px var(--ui);
+    cursor:pointer;
+  }
+  .toggle:hover{background:var(--surface-2)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  }
+  @media (max-width:560px){
+    .frame{font-size:10px}
+    .slate__body{padding:16px}
+    .stat{min-width:72px;padding:7px 11px}
+  }
+</style>
+
+<div class="app">
+
+  <header class="top">
+    <div class="sign">
+      <p>Unit 8 · Test 2</p>
+      <h1>Kino-Runner</h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Punkte</span><b id="uiScore">0</b></div>
+      <div class="stat stat--streak"><span>Serie</span><b id="uiStreak">0</b></div>
+      <div class="stat stat--scenes"><span>Szenen</span><b id="uiScenes">0/12</b></div>
+      <div class="stat"><span>Rekord</span><b id="uiBest">0</b></div>
+    </div>
+  </header>
+
+  <div class="strip" aria-label="Fortschritt: 12 Szenen">
+    <div class="frames" id="frames"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="game" width="1200" height="500" aria-label="Kino-Runner Spielfeld"></canvas>
+
+    <!-- start -->
+    <div class="overlay" id="ovStart">
+      <div class="slate">
+        <div class="clap"></div>
+        <div class="slate__body">
+          <h2 class="title-xl">Dreh deinen Film</h2>
+          <p class="lede">Du bist eine Filmrolle und rollst durchs Kino. Springe über Popcorn und Kameras, weiche dem Mikrofon aus und sammle goldene Rollen.</p>
+          <p class="lede">Bei jedem Crash ruft die Regie <b style="color:var(--rose)">Schnitt!</b> – dann übersetzt du ein Wort ins Englische. Erst wenn es stimmt, geht es mit <b style="color:var(--mint)">Action!</b> weiter. 12 Wörter richtig = Premiere.</p>
+          <div class="keys">
+            <span><kbd>Leertaste</kbd> oder <kbd>↑</kbd> springen</span>
+            <span>·</span>
+            <span>am Handy: tippen</span>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnStart">Kamera läuft</button>
+            <button class="btn btn--ghost" id="btnWords">Wörter zeigen</button>
+          </div>
+          <p class="feedback" id="wordPeek"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- vocab challenge -->
+    <div class="overlay" id="ovChallenge" hidden>
+      <div class="slate">
+        <div class="clap"></div>
+        <div class="slate__body">
+          <div class="slug"><span id="chSlug">INT. KINO – NACHT</span><span id="chTake">SZENE 1 · TAKE 1</span></div>
+          <h2 class="cue" id="chCue">Schnitt!</h2>
+          <p class="prompt-de" id="chWord">Drehbuch</p>
+          <p class="ask" id="chAsk">Wie heisst das auf Englisch?</p>
+          <input class="answer" id="chInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="tippen und Enter">
+          <p class="feedback" id="chFeedback"></p>
+          <div class="row">
+            <button class="btn" id="btnCheck">Prüfen</button>
+            <button class="btn btn--ghost" id="btnHint">Tipp (−50)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- premiere -->
+    <div class="overlay" id="ovWin" hidden>
+      <div class="slate">
+        <div class="clap"></div>
+        <div class="slate__body">
+          <h2 class="title-xl">Premiere!</h2>
+          <p class="award" id="winAward">Oscar</p>
+          <p class="lede" id="winLine">Alle 12 Szenen im Kasten.</p>
+          <ul class="tally" id="winTally"></ul>
+          <div class="row">
+            <button class="btn" id="btnAgain">Nochmal drehen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>12 Wörter aus <code>Vocabulary Unit 8 · Test 2</code> – dieselben wie in der Prüfung.</span>
+    <button class="toggle" id="btnSound">🔊 Ton an</button>
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ================= die 12 Wörter (Unit 8, Test 2) =================
+     de   = Vorgabe wie in der Voci-Liste
+     en   = Antwort aus der Liste
+     ok   = wird ebenfalls akzeptiert
+     slug = Drehbuch-Szenenkopf, nur Deko                                */
+  const WORDS = [
+    {de:"Regie führen",                    en:"direct",       ok:["to direct"],                 slug:"INT. FILMSET – TAG"},
+    {de:"Drehbuch",                        en:"script",       ok:["screenplay","the script"],   slug:"INT. AUTORENBÜRO – MORGEN"},
+    {de:"Uraufführung / Erste Aufführung", en:"premiere",     ok:["first night"],               slug:"EXT. ROTER TEPPICH – NACHT"},
+    {de:"Auszeichnung",                    en:"award",        ok:["prize"],                     slug:"INT. PREISVERLEIHUNG – NACHT"},
+    {de:"Publikum",                        en:"audience",     ok:[],                            slug:"INT. KINOSAAL – ABEND"},
+    {de:"Fortsetzung",                     en:"sequel",       ok:[],                            slug:"INT. KINOSAAL – ZWEI JAHRE SPÄTER"},
+    {de:"Untertitel",                      en:"subtitles",    ok:["subtitle"],                  slug:"INT. WOHNZIMMER – NACHT"},
+    {de:"unglaublich",                     en:"unbelievable", ok:["incredible"],                slug:"EXT. WELTRAUM – ZEITLOS"},
+    {de:"veröffentlichen / herausbringen", en:"release",      ok:["to release","bring out"],    slug:"INT. STUDIO – TAG"},
+    {de:"vermeiden",                       en:"avoid",        ok:["to avoid"],                  slug:"EXT. SCHULHOF – PAUSE"},
+    {de:"Filmmusik",                       en:"soundtrack",   ok:["film music"],                slug:"INT. TONSTUDIO – NACHT"},
+    {de:"verfügbar",                       en:"available",    ok:[],                            slug:"INT. SOFA – SEHR SPÄT"}
+  ];
+
+  /* ================= Helfer ================= */
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  };
+  const norm = s => s.toLowerCase().trim().replace(/[^a-zäöüß ]/g, "").replace(/\s+/g, " ");
+  function lev(a, b){
+    const m = a.length, n = b.length;
+    if (Math.abs(m - n) > 2) return 9;
+    let prev = Array.from({length:n+1}, (_, i) => i);
+    for (let i = 1; i <= m; i++){
+      const cur = [i];
+      for (let j = 1; j <= n; j++){
+        cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ================= Ton ================= */
+  let audio = null, soundOn = store.get("kr.sound", true);
+  function ac(){
+    if (!audio){
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (C) audio = new C();
+    }
+    if (audio && audio.state === "suspended") audio.resume();
+    return audio;
+  }
+  function tone(freq, dur, type, vol, to){
+    if (!soundOn) return;
+    const a = ac(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || "square";
+    o.frequency.setValueAtTime(freq, a.currentTime);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, a.currentTime + dur);
+    g.gain.setValueAtTime(vol || 0.05, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur + 0.02);
+  }
+  const sfx = {
+    jump(){ tone(340, 0.13, "square", 0.045, 620); },
+    coin(){ tone(880, 0.07, "triangle", 0.05); setTimeout(() => tone(1320, 0.1, "triangle", 0.045), 65); },
+    crash(){ tone(180, 0.3, "sawtooth", 0.07, 60); },
+    good(){ [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.13, "triangle", 0.05), i * 75)); },
+    bad(){ tone(200, 0.22, "square", 0.05, 130); },
+    win(){ [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.3, "triangle", 0.055), i * 130)); }
+  };
+
+  /* ================= Spielzustand ================= */
+  const W = 1200, H = 500, GROUND = 400;
+  const cv = $("game"), ctx = cv.getContext("2d");
+  const stage = $("stage");
+
+  let state = "menu";                 // menu | playing | challenge | won
+  let score = 0, best = store.get("kr.best", 0), streak = 0, bestStreak = 0;
+  let speed = 5.6, scrollX = 0, dist = 0, sinceObstacle = 0, gap = 420, sinceCoin = 0;
+  let invuln = 0, flash = 0, banner = null;
+  const player = { y: GROUND - 26, vy: 0, r: 26, rot: 0, grounded: true };
+  let obstacles = [], coins = [], bits = [];
+  let current = null, attempts = 0, usedHint = false, copyMode = false, lastAsked = -1;
+
+  const words = WORDS.map((w, i) => ({ ...w, i, banked: false, wrong: 0, hinted: false }));
+
+  /* ================= Deko-Welt (einmal erzeugen) ================= */
+  const rnd = (seed => () => (seed = seed * 16807 % 2147483647) / 2147483647)(48271);
+  const stars = Array.from({length: 70}, () => ({ x: rnd() * W, y: rnd() * 250, r: rnd() * 1.5 + 0.5, p: rnd() * 6.3 }));
+  const PERIOD = 1600;
+  const buildings = [];
+  for (let x = 0; x < PERIOD; ){
+    const w = 60 + rnd() * 90, h = 70 + rnd() * 150;
+    buildings.push({ x, w, h, lit: Array.from({length: Math.floor(h / 26)}, () => rnd() > 0.45) });
+    x += w + 10 + rnd() * 22;
+  }
+  const signOn = buildings[2];
+
+  /* ================= Zeichnen ================= */
+  function bg(t){
+    const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
+    sky.addColorStop(0, "#1D1038"); sky.addColorStop(0.55, "#2A1550"); sky.addColorStop(1, "#4A1D5E");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, GROUND);
+
+    ctx.save();
+    stars.forEach(s => {
+      ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(t / 900 + s.p));
+      ctx.fillStyle = "#FFF3D6";
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    });
+    ctx.restore();
+
+    // Mond als Filmrolle
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#F6E8C8";
+    ctx.beginPath(); ctx.arc(1010, 92, 40, 0, 7); ctx.fill();
+    ctx.fillStyle = "#2A1550";
+    for (let k = 0; k < 5; k++){
+      const a = k * 1.2566 + t / 6000;
+      ctx.beginPath(); ctx.arc(1010 + Math.cos(a) * 21, 92 + Math.sin(a) * 21, 7, 0, 7); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(1010, 92, 8, 0, 7); ctx.fill();
+    ctx.restore();
+
+    // Skyline
+    const off = (scrollX * 0.16) % PERIOD;
+    for (let pass = 0; pass < 2; pass++){
+      const dx = -off + pass * PERIOD;
+      buildings.forEach(b => {
+        const x = b.x + dx;
+        if (x > W + 20 || x + b.w < -20) return;
+        ctx.fillStyle = "#160B2C";
+        ctx.fillRect(x, GROUND - b.h, b.w, b.h);
+        ctx.fillStyle = "#FFC53D";
+        b.lit.forEach((on, r) => {
+          if (!on) return;
+          for (let c = 0; c < Math.floor(b.w / 24); c++){
+            ctx.globalAlpha = 0.30 + 0.5 * ((r * 7 + c * 3) % 5) / 5;
+            ctx.fillRect(x + 9 + c * 24, GROUND - b.h + 14 + r * 26, 9, 12);
+          }
+        });
+        ctx.globalAlpha = 1;
+        if (b === signOn){
+          const flick = reduced ? 1 : (Math.sin(t / 140) > -0.85 ? 1 : 0.35);
+          ctx.globalAlpha = flick;
+          ctx.shadowColor = "#FF4D8D"; ctx.shadowBlur = 22;
+          ctx.fillStyle = "#FF4D8D";
+          ctx.font = "700 30px Bungee, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("KINO", x + b.w / 2, GROUND - b.h - 16);
+          ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        }
+      });
+    }
+
+    // Lichterkette
+    const lo = (scrollX * 0.42) % 150;
+    ctx.strokeStyle = "rgba(255,243,214,.28)"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = -150; x <= W + 150; x += 10) ctx.lineTo(x, 34 + Math.sin((x + lo) / 150 * 3.14) * 16);
+    ctx.stroke();
+    const bulbs = ["#FFC53D", "#FF4D8D", "#5BE0F0"];
+    for (let i = 0; i < 20; i++){
+      const x = i * 75 - lo;
+      const y = 34 + Math.sin((x + lo) / 150 * 3.14) * 16 + 8;
+      ctx.fillStyle = bulbs[i % 3];
+      ctx.globalAlpha = reduced ? 0.9 : 0.55 + 0.45 * Math.sin(t / 320 + i);
+      ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function ground(){
+    ctx.fillStyle = "#120B22"; ctx.fillRect(0, GROUND, W, H - GROUND);
+    ctx.fillStyle = "#FFC53D"; ctx.fillRect(0, GROUND - 3, W, 3);
+    ctx.fillStyle = "rgba(255,197,61,.16)"; ctx.fillRect(0, GROUND, W, 2);
+    const o = scrollX % 60;
+    ctx.fillStyle = "#3B2A66";
+    for (let x = -o; x < W + 60; x += 60){
+      ctx.beginPath(); ctx.roundRect(x, GROUND + 16, 22, 13, 3); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(x, GROUND + 70, 22, 13, 3); ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.05)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, GROUND + 48); ctx.lineTo(W, GROUND + 48); ctx.stroke();
+  }
+
+  function drawPlayer(){
+    const x = 180, y = player.y;
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.ellipse(x, GROUND - 2, 26 - (GROUND - 26 - y) * 0.06, 6, 0, 0, 7); ctx.fill();
+    ctx.restore();
+
+    if (invuln > 0 && Math.floor(invuln / 5) % 2 === 0) return;
+
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(player.rot);
+    ctx.fillStyle = "#2B1B4D";
+    ctx.strokeStyle = "#FFC53D"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, player.r, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#FF4D8D";
+    for (let k = 0; k < 5; k++){
+      const a = k * 1.2566;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * 14, Math.sin(a) * 14, 5.4, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "#FFC53D";
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawObstacle(o){
+    const x = o.x, y = o.y;
+    if (o.kind === "popcorn"){
+      ctx.fillStyle = "#F7F0FF";
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 12); ctx.lineTo(x + o.w - 4, y + 12);
+      ctx.lineTo(x + o.w - 9, y + o.h); ctx.lineTo(x + 9, y + o.h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#FF5470";
+      for (let s = 0; s < 3; s++) ctx.fillRect(x + 7 + s * 13, y + 12, 6, o.h - 12);
+      ctx.fillStyle = "#FFE9A8";
+      [[10, 6], [22, 2], [33, 7], [17, -2], [28, -3]].forEach(p => {
+        ctx.beginPath(); ctx.arc(x + p[0], y + p[1], 7, 0, 7); ctx.fill();
+      });
+    } else if (o.kind === "camera"){
+      ctx.strokeStyle = "#8C79B8"; ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x + o.w / 2, y + 34); ctx.lineTo(x + 2, y + o.h);
+      ctx.moveTo(x + o.w / 2, y + 34); ctx.lineTo(x + o.w - 2, y + o.h);
+      ctx.moveTo(x + o.w / 2, y + 34); ctx.lineTo(x + o.w / 2, y + o.h);
+      ctx.stroke();
+      ctx.fillStyle = "#31215C"; ctx.strokeStyle = "#5BE0F0"; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.roundRect(x, y + 8, o.w, 30, 5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#5BE0F0";
+      ctx.beginPath(); ctx.arc(x + o.w - 7, y + 23, 7, 0, 7); ctx.fill();
+      ctx.fillStyle = "#8C79B8";
+      ctx.beginPath(); ctx.arc(x + 11, y + 6, 8, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 27, y + 6, 8, 0, 7); ctx.fill();
+    } else {
+      ctx.strokeStyle = "#8C79B8"; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(x + o.w / 2, 0); ctx.lineTo(x + o.w / 2, y + o.h - 46); ctx.stroke();
+      ctx.fillStyle = "#3B2A66"; ctx.strokeStyle = "#FF4D8D"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(x + o.w / 2, y + o.h - 24, 15, 26, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,77,141,.5)"; ctx.lineWidth = 2;
+      for (let k = -2; k <= 2; k++){
+        ctx.beginPath(); ctx.moveTo(x + o.w / 2 - 11, y + o.h - 24 + k * 9); ctx.lineTo(x + o.w / 2 + 11, y + o.h - 24 + k * 9); ctx.stroke();
+      }
+    }
+  }
+
+  function drawCoin(c, t){
+    const s = Math.abs(Math.cos(t / 220 + c.p));
+    ctx.save();
+    ctx.translate(c.x, c.y); ctx.scale(0.35 + s * 0.65, 1);
+    ctx.shadowColor = "#FFC53D"; ctx.shadowBlur = 14;
+    ctx.fillStyle = "#FFC53D";
+    ctx.beginPath(); ctx.arc(0, 0, 14, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#3A2604";
+    for (let k = 0; k < 4; k++){
+      const a = k * 1.57 + t / 400;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * 7, Math.sin(a) * 7, 2.6, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function overlayFx(t){
+    if (flash > 0){
+      ctx.fillStyle = "rgba(255,255,255," + (flash / 100 * 0.75) + ")";
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (banner){
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, banner.ttl / 25);
+      ctx.font = "700 62px Bungee, sans-serif";
+      ctx.textAlign = "center";
+      ctx.shadowColor = banner.color; ctx.shadowBlur = 26;
+      ctx.fillStyle = banner.color;
+      ctx.fillText(banner.text, W / 2, 150);
+      ctx.restore();
+    }
+    const v = ctx.createRadialGradient(W / 2, H / 2, 240, W / 2, H / 2, 700);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.55)");
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    if (!reduced){
+      ctx.fillStyle = "rgba(255,255,255,.05)";
+      for (let k = 0; k < 26; k++) ctx.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+      if (Math.random() < 0.04){
+        ctx.fillStyle = "rgba(255,255,255,.10)";
+        ctx.fillRect(Math.random() * W, 0, 1.5, H);
+      }
+    }
+  }
+
+  /* ================= Logik ================= */
+  function spawnObstacle(){
+    const r = Math.random();
+    if (r < 0.44) obstacles.push({ kind: "popcorn", x: W + 40, y: GROUND - 50, w: 44, h: 50 });
+    else if (r < 0.78) obstacles.push({ kind: "camera", x: W + 40, y: GROUND - 86, w: 38, h: 86 });
+    else obstacles.push({ kind: "boom", x: W + 40, y: 0, w: 34, h: 300 });
+    gap = Math.max(300, (330 + Math.random() * 300) * (speed / 6.4));
+  }
+
+  function hit(o){
+    const px = 180, py = player.y;
+    return px + 19 > o.x && px - 19 < o.x + o.w && py + 20 > o.y && py - 20 < o.y + o.h;
+  }
+
+  function jump(){
+    if (state !== "playing") return;
+    if (player.grounded){
+      player.vy = -12.7; player.grounded = false; sfx.jump();
+    }
+  }
+
+  function update(step, t){
+    speed = Math.min(12.2, 5.6 + dist * 0.0016);
+    const dx = speed * step;
+    scrollX += dx; dist += dx;
+    score += 0.14 * step;
+
+    player.vy = Math.min(17, player.vy + 0.66 * step);
+    player.y += player.vy * step;
+    if (player.y >= GROUND - player.r){ player.y = GROUND - player.r; player.vy = 0; player.grounded = true; }
+    player.rot += (player.grounded ? dx / 26 : dx / 60);
+
+    sinceObstacle += dx; sinceCoin += dx;
+    if (sinceObstacle > gap){ spawnObstacle(); sinceObstacle = 0; }
+    if (sinceCoin > 300 && Math.random() < 0.04){
+      coins.push({ x: W + 30, y: GROUND - (Math.random() < 0.5 ? 78 : 168), p: Math.random() * 6 });
+      sinceCoin = 0;
+    }
+
+    obstacles.forEach(o => o.x -= dx);
+    coins.forEach(c => c.x -= dx);
+    obstacles = obstacles.filter(o => o.x > -120);
+    coins = coins.filter(c => c.x > -40);
+
+    coins = coins.filter(c => {
+      if (Math.hypot(c.x - 180, c.y - player.y) < 34){
+        score += 25; sfx.coin();
+        for (let k = 0; k < 9; k++) bits.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 5 - 1, ttl: 30 });
+        return false;
+      }
+      return true;
+    });
+
+    bits.forEach(b => { b.x += b.vx * step; b.y += b.vy * step; b.vy += 0.3 * step; b.ttl -= step; });
+    bits = bits.filter(b => b.ttl > 0);
+
+    if (invuln > 0) invuln -= step;
+    else {
+      for (const o of obstacles){ if (hit(o)){ crash(); break; } }
+    }
+
+    if (flash > 0) flash -= 3 * step;
+    if (banner){ banner.ttl -= step; if (banner.ttl <= 0) banner = null; }
+  }
+
+  function frame(t){
+    const step = Math.min(2, (t - frame.last || 16) / 16.667);
+    frame.last = t;
+    if (state === "playing") update(step, t);
+
+    ctx.clearRect(0, 0, W, H);
+    bg(t);
+    coins.forEach(c => drawCoin(c, t));
+    obstacles.forEach(drawObstacle);
+    ground();
+    drawPlayer();
+    ctx.fillStyle = "#FFC53D";
+    bits.forEach(b => { ctx.globalAlpha = b.ttl / 30; ctx.fillRect(b.x, b.y, 4, 4); });
+    ctx.globalAlpha = 1;
+    overlayFx(t);
+    ui();
+    requestAnimationFrame(frame);
+  }
+
+  /* ================= UI ================= */
+  function ui(){
+    $("uiScore").textContent = Math.floor(score);
+    $("uiStreak").textContent = streak;
+    $("uiScenes").textContent = words.filter(w => w.banked).length + "/12";
+    $("uiBest").textContent = best;
+  }
+
+  const framesEl = $("frames");
+  words.forEach(w => {
+    const d = document.createElement("div");
+    d.className = "frame";
+    d.textContent = String(w.i + 1).padStart(2, "0");
+    d.title = w.de;
+    framesEl.appendChild(d);
+  });
+  function markFrame(w){
+    const el = framesEl.children[w.i];
+    el.classList.add("done", "pop");
+    el.textContent = "★";
+    el.title = w.de + " = " + w.en;
+    setTimeout(() => el.classList.remove("pop"), 260);
+  }
+
+  /* ================= Schnitt & Voci ================= */
+  function crash(){
+    state = "challenge";
+    flash = 100;
+    sfx.crash();
+    if (!reduced){ stage.classList.add("shake"); setTimeout(() => stage.classList.remove("shake"), 340); }
+    streak = 0;
+    if (Math.floor(score) > best){ best = Math.floor(score); store.set("kr.best", best); }
+    ask();
+  }
+
+  function ask(){
+    const pool = words.filter(w => !w.banked);
+    const hot = pool.filter(w => w.wrong > 0);
+    let pick = (hot.length && Math.random() < 0.55 ? hot : pool);
+    if (pick.length > 1) pick = pick.filter(w => w.i !== lastAsked);
+    current = pick[Math.floor(Math.random() * pick.length)];
+    lastAsked = current.i;
+    attempts = 0; usedHint = false; copyMode = false;
+
+    $("chSlug").textContent = current.slug;
+    $("chTake").textContent = "SZENE " + (current.i + 1) + " · TAKE " + (current.wrong + 1);
+    $("chCue").textContent = "Schnitt!";
+    $("chCue").classList.remove("ok");
+    $("chWord").textContent = current.de;
+    $("chAsk").textContent = "Wie heisst das auf Englisch?";
+    const inp = $("chInput");
+    inp.value = ""; inp.disabled = false; inp.placeholder = "tippen und Enter";
+    $("chFeedback").textContent = "";
+    $("chFeedback").className = "feedback";
+    $("btnHint").hidden = false;
+    $("btnCheck").textContent = "Prüfen";
+    $("ovChallenge").hidden = false;
+    setTimeout(() => inp.focus(), 40);
+  }
+
+  function feedback(msg, cls){
+    const f = $("chFeedback");
+    f.innerHTML = msg;
+    f.className = "feedback " + (cls || "");
+  }
+
+  function check(){
+    if (!current) return;
+    const inp = $("chInput");
+    if (inp.disabled) return;
+    const given = norm(inp.value);
+    if (!given) return;
+
+    const target = norm(current.en);
+    const accepted = [target, ...current.ok.map(norm)];
+
+    if (copyMode){
+      if (given === target){ resume(false); }
+      else { inp.classList.add("wrong"); setTimeout(() => inp.classList.remove("wrong"), 320); feedback("Noch nicht ganz – schreib genau <b>" + current.en + "</b>.", "bad"); }
+      return;
+    }
+
+    if (accepted.includes(given)){
+      const clean = given === target && !usedHint && current.wrong === 0;
+      if (given !== target) feedback("Stimmt auch – im Test steht: <b>" + current.en + "</b>", "good");
+      else feedback("Sitzt: <b>" + current.en + "</b>", "good");
+      current.banked = true;
+      if (usedHint) current.hinted = true;
+      markFrame(current);
+      score += clean ? 100 + streak * 25 : 60;
+      if (clean){ streak++; bestStreak = Math.max(bestStreak, streak); }
+      sfx.good();
+      $("chCue").textContent = "Action!";
+      $("chCue").classList.add("ok");
+      inp.disabled = true;
+      $("btnHint").hidden = true;
+      if (words.every(w => w.banked)){ setTimeout(win, 750); return; }
+      setTimeout(() => resume(true), 750);
+      return;
+    }
+
+    attempts++;
+    if (given.length >= 4 && lev(given, target) <= 1){
+      inp.classList.add("wrong"); setTimeout(() => inp.classList.remove("wrong"), 320);
+      feedback("So nah! Nur die Schreibweise stimmt noch nicht.", "hint");
+      sfx.bad();
+      return;
+    }
+
+    current.wrong++;
+    streak = 0;
+    sfx.bad();
+    inp.classList.add("wrong"); setTimeout(() => inp.classList.remove("wrong"), 320);
+    copyMode = true;
+    $("chAsk").textContent = "Richtig wäre: " + current.en;
+    feedback("Schreib <b>" + current.en + "</b> ab, dann läuft die Kamera weiter. Das Wort kommt später nochmal.", "bad");
+    $("btnHint").hidden = true;
+    $("btnCheck").textContent = "Weiter";
+    inp.value = "";
+    inp.placeholder = current.en.replace(/./g, "·");
+    inp.focus();
+  }
+
+  function hint(){
+    if (!current || copyMode) return;
+    usedHint = true;
+    score = Math.max(0, score - 50);
+    const en = current.en;
+    feedback("Tipp: <b>" + en[0] + en.slice(1).replace(/[a-z]/gi, "_") + "</b> (" + en.replace(/[^a-z]/gi, "").length + " Buchstaben)", "hint");
+    $("btnHint").hidden = true;
+    $("chInput").focus();
+  }
+
+  function resume(withBanner){
+    $("ovChallenge").hidden = true;
+    obstacles = obstacles.filter(o => o.x > 760);
+    invuln = 110;
+    if (withBanner) banner = { text: "ACTION!", color: "#3DDC97", ttl: 45 };
+    state = "playing";
+    cv.focus();
+  }
+
+  function win(){
+    state = "won";
+    $("ovChallenge").hidden = true;
+    const perfect = words.filter(w => w.wrong === 0 && !w.hinted).length;
+    score += 500;
+    if (Math.floor(score) > best){ best = Math.floor(score); store.set("kr.best", best); }
+    let award = "Nominiert – die nächste Vorstellung wird besser";
+    if (perfect === 12) award = "Oscar für den besten Wortschatz";
+    else if (perfect >= 9) award = "Auszeichnung für die Hauptrolle";
+    else if (perfect >= 6) award = "Publikumspreis";
+    $("winAward").textContent = award;
+    $("winLine").textContent = perfect + " von 12 Wörtern auf Anhieb richtig · " + Math.floor(score) +
+      " Punkte · längste Serie: " + bestStreak;
+    const list = $("winTally");
+    list.innerHTML = "";
+    words.forEach(w => {
+      const li = document.createElement("li");
+      if (w.wrong > 0 || w.hinted) li.className = "retry";
+      li.innerHTML = "<i>" + w.de + "</i><b>" + w.en + "</b>";
+      list.appendChild(li);
+    });
+    $("ovWin").hidden = false;
+    sfx.win();
+  }
+
+  function reset(){
+    score = 0; streak = 0; bestStreak = 0; speed = 5.6; dist = 0; scrollX = 0;
+    sinceObstacle = 0; sinceCoin = 0; gap = 420; invuln = 60; flash = 0; banner = null;
+    obstacles = []; coins = []; bits = [];
+    player.y = GROUND - 26; player.vy = 0; player.grounded = true;
+    words.forEach(w => {
+      w.banked = false; w.wrong = 0; w.hinted = false;
+      const el = framesEl.children[w.i];
+      el.classList.remove("done");
+      el.textContent = String(w.i + 1).padStart(2, "0");
+      el.title = w.de;
+    });
+  }
+
+  /* ================= Steuerung ================= */
+  addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW"){
+      if (state === "playing"){ e.preventDefault(); jump(); }
+      else if (state === "menu" && document.activeElement.tagName !== "BUTTON"){ e.preventDefault(); start(); }
+    }
+    if (e.key === "Enter" && state === "challenge"){ e.preventDefault(); check(); }
+  });
+  cv.addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
+  $("btnCheck").addEventListener("click", check);
+  $("btnHint").addEventListener("click", hint);
+  $("chInput").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); check(); } });
+
+  function start(){
+    ac(); reset(); $("ovStart").hidden = true; $("ovWin").hidden = true;
+    state = "playing";
+    banner = { text: "ACTION!", color: "#3DDC97", ttl: 45 };
+  }
+  $("btnStart").addEventListener("click", start);
+  $("btnAgain").addEventListener("click", start);
+
+  let peeking = false;
+  $("btnWords").addEventListener("click", () => {
+    peeking = !peeking;
+    $("wordPeek").textContent = peeking ? words.map(w => w.de).join(" · ") : "";
+    $("btnWords").textContent = peeking ? "Wörter verstecken" : "Wörter zeigen";
+  });
+
+  const btnSound = $("btnSound");
+  function paintSound(){ btnSound.textContent = soundOn ? "🔊 Ton an" : "🔇 Ton aus"; }
+  btnSound.addEventListener("click", () => { soundOn = !soundOn; store.set("kr.sound", soundOn); paintSound(); if (soundOn) sfx.coin(); });
+  paintSound();
+
+  /* ================= Start ================= */
+  function resize(){
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(r.width * dpr);
+    cv.height = Math.round(r.width * dpr * H / W);
+    ctx.setTransform(cv.width / W, 0, 0, cv.width / W, 0, 0);
+  }
+  addEventListener("resize", resize);
+  resize();
+  ui();
+  requestAnimationFrame(frame);
+})();
+</script>

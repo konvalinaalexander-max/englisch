@@ -20,6 +20,7 @@ Insgesamt **12 Wörter**, jedes genau einmal.
 ## Ordner
 
 ```
+games/       interaktive Voci-Spiele (HTML, einfach im Browser öffnen)
 vocab/       hochgeladene Voci-Listen
 specs/       je Prüfung eine JSON-Datei: Wortauswahl + Lückentext
 exams/       die fertigen Prüfungen (.docx)
@@ -27,6 +28,14 @@ reference/   die Original-Prüfung, an der sich alles ausrichtet
 tools/       das Tool (nur Python-Standardbibliothek)
 tests/       Tests für Tool und Regeln
 ```
+
+## Spiele
+
+`games/kino-runner.html` – Lauf-Spiel im Kino zu Unit 8, Test 2. Bei jedem
+Crash muss eines der 12 Wörter übersetzt werden, erst dann geht es weiter;
+alle 12 richtig = Premiere mit Auszeichnung. Die Wortliste steht als
+`WORDS`-Block zuoberst im `<script>` und lässt sich für eine neue Unit
+austauschen. Die Datei einfach im Browser öffnen, sie braucht nichts weiter.
 
 ## Tool
 
